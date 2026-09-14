@@ -17,7 +17,7 @@ npm run db:up      # start Postgres+pgvector (host port 5433)
 npm run db:reset   # destroy the volume and restart empty
 npm run db:generate / db:migrate   # drizzle-kit
 npm run db:psql    # psql into the container
-npm run db:ingest  # POST /api/ingest — embeds the corpus and replaces both tables
+npm run db:ingest  # POST /api/ingest — embeds only the sections whose prose changed
 ```
 
 No test runner is configured — no Jest/Vitest/Playwright dependency, config, or script exists. If tests are needed, pick and install a framework first rather than assuming one is present.
@@ -26,7 +26,7 @@ No test runner is configured — no Jest/Vitest/Playwright dependency, config, o
 
 A working RAG chatbot over a curated travel-destination corpus. **`spec/initialsetup.md` is the authoritative design document** — it records all 12 infrastructure decisions, what was rejected and why, and a "stale priors corrected" table of things that are easy to get wrong here. Read it before changing architecture.
 
-Pipeline: `src/data/destinations.ts` (typed corpus, one object per destination with named prose sections) → `POST /api/ingest` (dev-only, embeds every section, replaces both tables in a transaction) → `src/lib/retrieve.ts` (cosine similarity + optional metadata filters) → `POST /api/chat` (grounded, streamed) → `src/app/_components/Chat.tsx`.
+Pipeline: `src/data/destinations.ts` (typed corpus, one object per destination with named prose sections) → `POST /api/ingest` (dev-only, incremental: embeds only changed sections, in a transaction) → `src/lib/retrieve.ts` (cosine similarity + optional metadata filters) → `POST /api/chat` (grounded, streamed) → `src/app/_components/Chat.tsx`.
 
 ### Non-obvious constraints — these bite
 
@@ -35,7 +35,9 @@ Pipeline: `src/data/destinations.ts` (typed corpus, one object per destination w
 - **`ORDER BY embedding <=> $1` ascending — never `desc(1 - cosineDistance(...))`.** The wrapped form returns identical rows but silently abandons the HNSW index (`Seq Scan` + `Sort`).
 - **pgvector post-filters**: HNSW takes `hnsw.ef_search` (default 40) candidates *then* applies `WHERE`, so filtered queries can under-return. Mitigated with `SET LOCAL hnsw.iterative_scan` inside a transaction — `SET LOCAL` outside a transaction is a silent no-op.
 - **The `pg` Pool is cached on `globalThis`** (`src/db/index.ts`), as is the Gemini client. Without it, `next dev` HMR leaks a pool per save until Postgres refuses connections.
-- **`/api/ingest` is guarded by `NODE_ENV`.** It deletes both tables. Keep the guard.
+- **`/api/ingest` is guarded by `NODE_ENV`.** It rewrites the corpus tables. Keep the guard.
+- **Ingest is incremental, per section.** It compares the stored `content` against the corpus text and re-embeds only what changed, so re-running costs nothing and adding a destination costs five embeddings. Metadata (name, tags, `bestMonths`, `budgetTier`) is always rewritten — retagging is free. `?force=1` re-embeds everything, which is needed only after changing the embedding model or its dimensions.
+- **A full re-embed no longer fits the free tier.** 100 chunks exceeds `gemini-embedding-2`'s 100-requests-per-minute free quota and returns `429 RESOURCE_EXHAUSTED` part-way through. That is why ingest must stay incremental; `?force=1` on a corpus this size needs to be retried or split.
 - Chat history is **not** persisted (React state only) — a refresh clears it, by design.
 - **Free tier only.** Every model used here (`gemini-3.5-flash-lite`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-embedding-2`) has a free tier. `gemini-3.1-pro-preview` does **not** — that is why it returned 429 in testing; do not add it. Exceeding a free-tier limit returns `429 RESOURCE_EXHAUSTED`, it never silently bills; charges are only possible if a billing account is linked to the Google Cloud project. Re-check pricing before adding any model.
 - **Chat models are a fallback chain, not a single id** (`CHAT_MODELS` in `src/lib/gemini.ts`). Gemini 503s the newest models under load, and `gemini-3.8-flash` took **55s to surface that 503** because the SDK retries internally. Each attempt is capped by `CHAT_ATTEMPT_TIMEOUT_MS` (`config.httpOptions.timeout`) so an overloaded model is abandoned in seconds. Measured 2026-09-11: 3.8-flash and 3.7-flash 503ing; `gemini-3.5-flash-lite` ~0.7s; `gemini-3.5-flash` ~7.8s; `gemini-3.1-pro-preview` 429 on this key's tier. Reorder the array to trade speed for capability.
