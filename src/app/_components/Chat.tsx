@@ -1,10 +1,12 @@
 "use client";
 
+import { ArrowDown, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePrefillHandlerSlot } from "./chat-prefill";
 import Composer from "./Composer";
 import EmptyState from "./EmptyState";
 import MessageTurn from "./MessageTurn";
-import type { ChatMessage, ChatStatus, Source } from "./types";
+import type { ChatMessage, ChatStatus, CorpusStatus, Source } from "./types";
 
 /**
  * Local ids only. A module counter (rather than `crypto.randomUUID()`) keeps
@@ -42,7 +44,7 @@ function isAbortError(error: unknown): boolean {
 /** Treat "close enough to the bottom" as pinned, so streaming keeps up. */
 const PIN_THRESHOLD_PX = 64;
 
-export default function Chat() {
+export default function Chat({ corpus }: { corpus: CorpusStatus }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<ChatStatus>("idle");
   const [input, setInput] = useState("");
@@ -50,6 +52,8 @@ export default function Chat() {
 
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pinnedRef = useRef(true);
 
   const busy = status !== "idle";
@@ -212,6 +216,27 @@ export default function Chat() {
     setPinnedToBottom(true);
   }, [busy]);
 
+  /**
+   * A destination card asked a question on the visitor's behalf. Fill the
+   * composer and bring it into view, but never send — see `chat-prefill.tsx`.
+   * The handler runs from a click, which makes this a subscription to an
+   * external event rather than setState inside an effect body.
+   */
+  const setPrefillHandler = usePrefillHandlerSlot();
+  useEffect(() => {
+    setPrefillHandler((text) => {
+      setInput(text);
+      cardRef.current?.scrollIntoView({ block: "center" });
+      const textarea = textareaRef.current;
+      if (textarea) {
+        textarea.focus();
+        // Caret at the end, so the user can keep typing straight away.
+        textarea.setSelectionRange(text.length, text.length);
+      }
+    });
+    return () => setPrefillHandler(null);
+  }, [setPrefillHandler]);
+
   const lastMessage = messages[messages.length - 1];
   // The retrieval + embedding + first-token gap is several seconds long, so the
   // indicator stays up for the whole time the in-flight turn has no text yet.
@@ -225,36 +250,47 @@ export default function Chat() {
       : undefined;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="border-b border-border-subtle">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
-            <h1 className="truncate text-sm font-semibold">Rootwise</h1>
-            <p className="truncate text-xs text-muted-foreground">
-              Retrieval-grounded answers · history is not saved
-            </p>
-          </div>
-          {messages.length > 0 ? (
-            <button
-              type="button"
-              onClick={reset}
-              disabled={busy}
-              className="shrink-0 rounded-lg border border-border-subtle px-2.5 py-1.5 text-xs font-medium hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              New chat
-            </button>
-          ) : null}
-        </div>
+    <div
+      ref={cardRef}
+      className="flex h-[clamp(26rem,68dvh,40rem)] flex-col overflow-hidden rounded-3xl border border-border/80 bg-card/95 shadow-[0_24px_70px_-24px_rgba(15,12,8,0.55)] ring-1 ring-black/5 backdrop-blur-xl"
+    >
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
+        <p className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <span
+            className={
+              corpus.state === "ready"
+                ? "size-1.5 shrink-0 rounded-full bg-emerald-600 dark:bg-emerald-400"
+                : "size-1.5 shrink-0 rounded-full bg-marigold"
+            }
+            aria-hidden="true"
+          />
+          <span className="truncate">
+            {corpus.state === "ready"
+              ? `Answering from ${corpus.sections} passages across ${corpus.destinations} destination guides`
+              : "Destination guides are unavailable right now"}
+          </span>
+        </p>
+        {messages.length > 0 ? (
+          <button
+            type="button"
+            onClick={reset}
+            disabled={busy}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <RotateCcw className="size-3.5" aria-hidden="true" />
+            New chat
+          </button>
+        ) : null}
       </header>
 
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
       >
-        <div className="mx-auto w-full max-w-3xl px-4 py-6">
+        <div className="px-4 py-5 sm:px-5">
           {messages.length === 0 ? (
-            <EmptyState onPick={send} />
+            <EmptyState onPick={send} corpus={corpus} />
           ) : (
             <div className="flex flex-col gap-6">
               {messages.map((message) => (
@@ -271,32 +307,32 @@ export default function Chat() {
         </div>
       </div>
 
-      <div className="border-t border-border-subtle">
-        <div className="relative mx-auto w-full max-w-3xl px-4 py-3">
-          {!pinnedToBottom && messages.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => {
-                scrollToBottom();
-                pinnedRef.current = true;
-                setPinnedToBottom(true);
-              }}
-              className="absolute -top-11 left-1/2 -translate-x-1/2 rounded-full border border-border-subtle bg-surface px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-surface-muted"
-            >
-              Jump to latest
-            </button>
-          ) : null}
-          <Composer
-            value={input}
-            onChange={setInput}
-            onSubmit={() => send(input)}
-            onStop={stop}
-            busy={busy}
-          />
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            Enter to send · Shift+Enter for a new line
-          </p>
-        </div>
+      <div className="relative shrink-0 border-t border-border px-4 py-3 sm:px-5">
+        {!pinnedToBottom && messages.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => {
+              scrollToBottom();
+              pinnedRef.current = true;
+              setPinnedToBottom(true);
+            }}
+            className="absolute -top-12 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium shadow-md transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <ArrowDown className="size-3.5" aria-hidden="true" />
+            Jump to latest
+          </button>
+        ) : null}
+        <Composer
+          value={input}
+          onChange={setInput}
+          onSubmit={() => send(input)}
+          onStop={stop}
+          busy={busy}
+          textareaRef={textareaRef}
+        />
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Enter to send · Shift+Enter for a new line · nothing is saved
+        </p>
       </div>
     </div>
   );

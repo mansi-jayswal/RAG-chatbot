@@ -1,53 +1,190 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --surface: #ffffff;
-  --surface-muted: #f4f4f5;
-  --border-subtle: #e4e4e7;
-  --muted-foreground: #52525b;
-  --accent: #171717;
-  --accent-foreground: #fafafa;
-  --error: #b42318;
-  --error-surface: #fef3f2;
-  --error-border: #fecdca;
+/*
+ * Dark mode is driven by the OS preference (no toggle — see the UI spec), but
+ * shadcn components ship `dark:` utilities that compile against a class. The
+ * block form makes both work, so a toggle could be added later without
+ * touching a single component.
+ */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    @slot;
+  }
+  &:where(.dark, .dark *) {
+    @slot;
+  }
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
-  --color-border-subtle: var(--border-subtle);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-error: var(--error);
-  --color-error-surface: var(--error-surface);
-  --color-error-border: var(--error-border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/*
+ * Warm India editorial palette. Light values live here; the dark counterpart is
+ * hand-tuned below rather than inverted — warm neutrals go muddy when flipped,
+ * and the accents have to be desaturated to stay legible on a dark ground.
+ */
+:root {
+  --background: #faf6f0;
+  --foreground: #1c1917;
+  --card: #fffdfa;
+  --card-foreground: #1c1917;
+  --popover: #fffdfa;
+  --popover-foreground: #1c1917;
+  --primary: #1e2a5a;
+  --primary-foreground: #faf6f0;
+  --secondary: #f0e8dc;
+  --secondary-foreground: #3a2e22;
+  --muted: #f2ebe1;
+  --muted-foreground: #6b5f52;
+  --accent: #f0e8dc;
+  --accent-foreground: #3a2e22;
+  --destructive: #b42318;
+  --destructive-foreground: #fffdfa;
+  --border: #e7ded2;
+  --input: #e7ded2;
+  --ring: #b4670a;
+  --radius: 0.75rem;
+
+  /* Brand accents. Deliberately separate from shadcn's `--accent`, which is a
+     subtle hover surface — painting it marigold would tint every hover state. */
+  --marigold: #b4670a;
+  --marigold-bright: #e4820b;
+  --terracotta: #b44a28;
+  --indigo: #1e2a5a;
+
+  /* Scrim over hero photography, tuned so white type clears 4.5:1. */
+  --scrim-from: color-mix(in oklab, #0d1330 82%, transparent);
+  --scrim-to: color-mix(in oklab, #0d1330 34%, transparent);
+
+  /* Aliases kept so the pre-existing chat components compile unchanged. */
+  --surface: var(--card);
+  --surface-muted: var(--muted);
+  --border-subtle: var(--border);
+  --error: var(--destructive);
+  --error-surface: #fdf2f0;
+  --error-border: #f2d0ca;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --surface: #101013;
-    --surface-muted: #18181b;
-    --border-subtle: #27272a;
-    --muted-foreground: #a1a1aa;
-    --accent: #ededed;
-    --accent-foreground: #171717;
-    --error: #fca5a5;
+    --background: #14110e;
+    --foreground: #f0eae2;
+    --card: #1c1815;
+    --card-foreground: #f0eae2;
+    --popover: #1c1815;
+    --popover-foreground: #f0eae2;
+    --primary: #aebbf0;
+    --primary-foreground: #131a34;
+    --secondary: #2a241e;
+    --secondary-foreground: #f0eae2;
+    --muted: #241f1a;
+    --muted-foreground: #b3a697;
+    --accent: #2a241e;
+    --accent-foreground: #f0eae2;
+    --destructive: #ef9c92;
+    --destructive-foreground: #2a1413;
+    --border: #2e2721;
+    --input: #332c25;
+    --ring: #f0a94a;
+
+    --marigold: #f0a94a;
+    --marigold-bright: #f0a94a;
+    --terracotta: #d97757;
+    --indigo: #aebbf0;
+
+    --scrim-from: color-mix(in oklab, #000000 78%, transparent);
+    --scrim-to: color-mix(in oklab, #000000 42%, transparent);
+
     --error-surface: #2a1517;
     --error-border: #5c2426;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-marigold: var(--marigold);
+  --color-marigold-bright: var(--marigold-bright);
+  --color-terracotta: var(--terracotta);
+  --color-indigo: var(--indigo);
+
+  /* Aliases for the original chat components. */
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border-subtle: var(--border-subtle);
+  --color-error: var(--error);
+  --color-error-surface: var(--error-surface);
+  --color-error-border: var(--error-border);
+
+  --font-sans: var(--font-body-family), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-body-family), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-family), Georgia, serif;
+  --font-mono: var(--font-mono-family), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius); 
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.4);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+    /* The sticky brand bar must not cover the heading of an anchored section. */
+    scroll-padding-top: 5.5rem;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Motion is opt-out at the source: GSAP reads the same query, and these
+     rules catch every CSS transition the components declare. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
 }

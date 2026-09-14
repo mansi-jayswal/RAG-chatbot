@@ -14,28 +14,27 @@ function formatScore(score: unknown): string {
  */
 export default function Sources({ sources }: { sources: Source[] }) {
   return (
-    <details className="mt-3 overflow-hidden rounded-lg border border-border-subtle bg-surface-muted">
-      <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-muted-foreground select-none hover:text-foreground">
-        Sources ({sources.length})
+    <details className="mt-3.5 overflow-hidden rounded-xl border border-border bg-muted/60">
+      <summary className="cursor-pointer list-none px-3.5 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase transition-colors select-none hover:text-foreground">
+        Where this came from ({sources.length})
       </summary>
       {sources.length === 0 ? (
-        <p className="border-t border-border-subtle px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-          No chunks were retrieved for this turn. If the answer looks
-          ungrounded, the corpus is probably still empty — run{" "}
-          <code className="font-mono">npm run db:ingest</code>.
+        <p className="border-t border-border px-3.5 py-2.5 text-xs leading-relaxed text-muted-foreground">
+          Nothing in the guides matched this question, so the answer above is
+          not based on them.
         </p>
       ) : (
-        <ul className="divide-y divide-border-subtle border-t border-border-subtle">
+        <ul className="divide-y divide-border border-t border-border">
           {sources.map((source, index) => (
             <li
               key={`${source.slug}-${source.section}-${index}`}
-              className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-3 py-2 text-xs"
+              className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-3.5 py-2.5 text-xs"
             >
-              <span className="font-medium break-words">{source.name}</span>
-              <span className="text-muted-foreground break-words">
+              <span className="font-semibold break-words">{source.name}</span>
+              <span className="break-words text-muted-foreground">
                 {source.section}
               </span>
-              <span className="ml-auto font-mono text-muted-foreground">
+              <span className="ml-auto font-mono tabular-nums text-muted-foreground">
                 {formatScore(source.score)}
               </span>
             </li>

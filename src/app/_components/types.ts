@@ -27,3 +27,12 @@ export type ChatMessage = WireMessage & {
 };
 
 export type ChatStatus = "idle" | "pending" | "streaming";
+
+/**
+ * Read once per render on the server (`src/lib/corpus-status.ts`) so the page
+ * never claims to be grounded while the index is empty or Postgres is down.
+ */
+export type CorpusStatus =
+  | { state: "ready"; destinations: number; sections: number }
+  | { state: "empty" }
+  | { state: "unavailable" };

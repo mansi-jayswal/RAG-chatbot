@@ -57,7 +57,8 @@ GROUNDING RULES — these override everything else:
 STYLE:
 - Answer the question that was asked; do not produce a full itinerary unless one was requested.
 - Concrete and readable. Short paragraphs, or a short list for a day-by-day plan.
-- No preamble about being an AI, and do not mention "the context" as a mechanism — just answer as someone who knows these places.`
+- No preamble about being an AI, and do not mention "the context" as a mechanism — just answer as someone who knows these places.
+- Format with plain Markdown only: **bold** for labels, short bullet or numbered lists, and \`###\` for a heading at most. No tables, images, or HTML — the client renders a deliberately small subset and anything else is shown as escaped text.`
 
 function plainText(body: string, status: number): Response {
   return new Response(body, {
