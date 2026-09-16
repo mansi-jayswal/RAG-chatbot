@@ -7,18 +7,14 @@ If the guides don't cover something, Rootwise says so instead of inventing a pla
 ---
 
 ## Demo
+<img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/1cbd35d1-76a1-4130-aac5-4f99ed870824" />
+<img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/97b86e9e-8e48-4c87-ac53-29d7172e6edd" />
+<img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/d9aedd2d-f0c5-4e0d-86c0-01b9466d79a9" />
+<img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/05d189a5-0753-4c0d-bf66-26b1eaeb9c7e" />
+<img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/339379a1-8197-4415-a9ab-9e03b2e746a0" />
+<img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/3c4b0128-b957-4dc5-9b5c-d73b0f81e876" />
 
-> _Demo video and screenshots to be added._
 
-<!--
-Drop media into `docs/` and uncomment:
-
-![Rootwise homepage](docs/screenshot-home.png)
-![Chat answer with sources](docs/screenshot-chat.png)
-
-For a video, either link a GitHub-hosted upload or embed a GIF:
-https://github.com/mansi-jayswal/RAG-chatbot/assets/<id>/<file>.mp4
--->
 
 ---
 
