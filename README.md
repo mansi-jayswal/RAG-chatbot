@@ -9,11 +9,9 @@ If the guides don't cover something, Rootwise says so instead of inventing a pla
 ## Demo
 <img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/1cbd35d1-76a1-4130-aac5-4f99ed870824" />
 <img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/97b86e9e-8e48-4c87-ac53-29d7172e6edd" />
-<img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/d9aedd2d-f0c5-4e0d-86c0-01b9466d79a9" />
 <img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/05d189a5-0753-4c0d-bf66-26b1eaeb9c7e" />
 <img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/339379a1-8197-4415-a9ab-9e03b2e746a0" />
 <img width="1677" height="815" alt="image" src="https://github.com/user-attachments/assets/3c4b0128-b957-4dc5-9b5c-d73b0f81e876" />
-
 
 
 ---
@@ -27,30 +25,6 @@ If the guides don't cover something, Rootwise says so instead of inventing a pla
 - **Destination detail dialogs.** Open any destination to read its full guide locally, with a button that hands a question to the chat.
 - **No accounts, no storage.** Conversations live in React state only. A refresh clears them, by design.
 
-## How it works
-
-```
-                     src/data/destinations.ts
-                     20 destinations × 5 prose sections
-                                  │
-                                  │  POST /api/ingest   (dev only, incremental)
-                                  ▼
-                     gemini-embedding-2 @ 1536 dims
-                                  │
-                                  ▼
-                     Postgres 17 + pgvector
-                     destinations ── chunks (HNSW, cosine)
-                                  ▲
-        your question ────────────┘  cosine similarity, top 5
-                                  │  optional metadata filters
-                                  ▼
-                     retrieved passages only
-                                  │
-                                  ▼
-                     Gemini chat model  ──stream──▶  UI
-                                  │
-                                  └──▶ X-Rag-Sources header ──▶ "Where this came from"
-```
 
 1. **Ingest.** Each destination's five prose sections (`overview`, `food`, `attractions`, `gettingAround`, `whenToGo`) become one independently embedded chunk. Sections are written to be self-contained, because a section is retrieved without its siblings.
 2. **Retrieve.** The question is embedded and compared against all 100 chunks by cosine distance, returning the top 5. Optional filters narrow by month or budget tier.
@@ -160,31 +134,7 @@ Now ask it something.
 | `npm run db:psql`                    | psql shell into the container                     |
 | `npm run db:ingest`                  | `POST /api/ingest` — embeds only what changed     |
 
-## Project structure
 
-```
-src/
-├── app/
-│   ├── _components/        UI — hero, chat, destination cards, sections
-│   ├── api/
-│   │   ├── chat/           POST: retrieve → generate → stream
-│   │   └── ingest/         POST: dev-only incremental corpus ingest
-│   ├── globals.css         Tailwind v4 theme + design tokens
-│   ├── layout.tsx          Fonts, metadata
-│   └── page.tsx            The single page
-├── components/ui/          shadcn primitives
-├── data/
-│   └── destinations.ts     The corpus — typed, hand-written
-├── db/
-│   ├── index.ts            pg Pool cached on globalThis
-│   └── schema.ts           destinations + chunks (HNSW)
-└── lib/
-    ├── catalog.ts          Presentation view of the corpus
-    ├── corpus-status.ts    Server-side index health
-    ├── embed.ts            Batched embedding
-    ├── gemini.ts           Client + model configuration
-    └── retrieve.ts         Cosine search + metadata filters
-```
 
 ## Adding a destination
 
@@ -225,12 +175,6 @@ Both defaults are shifted to avoid collisions with other services on the develop
 
 Next chooses its own port if 3000 is taken and prints it on startup — trust that line over this table.
 
-## Accessibility and design
-
-- Light and dark themes are both hand-tuned and driven by `prefers-color-scheme`; the dark palette is designed, not inverted.
-- The text/background pairs that carry copy were measured against WCAG AA, including white type over the hero photograph.
-- Every GSAP effect sits inside a `prefers-reduced-motion` branch, and nothing is hidden by CSS — a visit without JavaScript still renders the finished page.
-- Model output is rendered through a strict Markdown tag allow-list with raw HTML disabled, so text that passes through the model cannot inject markup.
 
 ## Design document
 
